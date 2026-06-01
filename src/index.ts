@@ -1,18 +1,77 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { handleMessage } from './message';
 
+/**
+ * QQ 机器人 Worker —— 接收 OneBot 协议 Webhook，验签后分发消息
+ *
+ * 处理流程：
+ *   1. 仅接受 POST 请求
+ *   2. 校验请求头 X-Signature（HMAC-SHA1）
+ *   3. 解析 JSON body
+ *   4. 按 post_type 分发给对应处理函数
+ */
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response("Hello World!");
+	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
+		console.log('！！！request层:', request.method, request.url);
+
+		// 仅接受 POST 请求
+		if (request.method !== 'POST') {
+			return new Response('Method Not Allowed', { status: 405 });
+		}
+
+		// 1. 从请求头中提取签名（格式：sha1=xxxxxxxx...）
+		const sigHeader = request.headers.get('X-Signature') ?? '';
+		const EXP_PREFIX = 'sha1=';
+		if (!sigHeader.startsWith(EXP_PREFIX)) {
+			return new Response('missing signature', { status: 403 });
+		}
+		const receivedHex = sigHeader.slice(EXP_PREFIX.length);
+
+		// 2. 用 TOKEN 对原始请求体计算 HMAC-SHA1
+		const rawBuf = await request.arrayBuffer();
+		const bodyBytes = new Uint8Array(rawBuf);
+
+		const secretKey = await crypto.subtle.importKey(
+			'raw',
+			new TextEncoder().encode(env.TOKEN),
+			{ name: 'HMAC', hash: 'SHA-1' },
+			false,
+			['sign'],
+		);
+		const sigBuf = await crypto.subtle.sign('HMAC', secretKey, bodyBytes);
+		const expectedHex = [...new Uint8Array(sigBuf)]
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
+
+		// 3. 比对签名，不一致则拒绝
+		if (receivedHex !== expectedHex) {
+			return new Response('signature mismatch', { status: 403 });
+		}
+
+		// 签名校验通过，解析并分发消息
+		try {
+			const payload = JSON.parse(new TextDecoder().decode(bodyBytes));
+
+			// 仅处理消息事件，其他事件静默忽略
+			if ((payload as any).post_type === 'message') {
+				return await handleMessage(payload, env);
+			}
+
+			return jsonResponse({});
+		} catch (e) {
+			console.error('Fetch Error:', e);
+			return jsonResponse({});
+		}
 	},
-} satisfies ExportedHandler<Env>;
+};
+
+/**
+ * 统一构造 JSON 格式的 HTTP 响应
+ * @param data   - 响应体对象
+ * @param status - HTTP 状态码（默认 200）
+ */
+function jsonResponse(data: any, status = 200) {
+	return new Response(JSON.stringify(data), {
+		status,
+		headers: { 'Content-Type': 'application/json' },
+	});
+}
