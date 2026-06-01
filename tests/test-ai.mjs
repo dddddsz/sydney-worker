@@ -46,20 +46,14 @@ const AI_BASE_URL = getEnv('AI_BASE_URL', 'https://api.anyapi.ai/v1');
 const AI_API_KEY = getEnv('AI_API_KEY');
 const AI_MODEL   = getEnv('AI_MODEL', 'google/gemma-4-26b-a4b-it:free');
 
-// 终端彩色日志输出（红/绿/黄/青 + 重置）
-const RED    = '\x1b[31m';
-const GREEN  = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const CYAN   = '\x1b[36m';
-const RESET  = '\x1b[0m';
-
-function log(color, label, msg) {
-  console.log(`${color}[${label}]${RESET} ${msg}`);
+// 统一日志输出
+function log(label, msg) {
+  console.log(`[test-ai.mjs] [${label}] ${msg}`);
 }
 
 // 前置检查：API Key 必须存在
 if (!AI_API_KEY) {
-  log(RED, 'FAIL', 'AI_API_KEY 未设置。请在 .dev.vars 或环境变量中配置。');
+  log('FAIL', 'AI_API_KEY 未设置。请在 .dev.vars 或环境变量中配置。');
   process.exit(1);
 }
 
@@ -74,10 +68,10 @@ const body = {
 };
 
 // 打印请求参数摘要（密钥脱敏显示首尾各 4 位）
-console.log(`\n${CYAN}══════════════ AI API 联通测试 ══════════════${RESET}\n`);
-console.log(`  ${YELLOW}URL${RESET}    ${AI_BASE_URL}`);
-console.log(`  ${YELLOW}Model${RESET}  ${AI_MODEL}`);
-console.log(`  ${YELLOW}Key${RESET}    ${AI_API_KEY.slice(0, 8)}...${AI_API_KEY.slice(-4)}\n`);
+console.log('[test-ai.mjs] AI API 联通测试');
+console.log(`[test-ai.mjs] URL    ${AI_BASE_URL}`);
+console.log(`[test-ai.mjs] Model  ${AI_MODEL}`);
+console.log(`[test-ai.mjs] Key    ${AI_API_KEY.slice(0, 8)}...${AI_API_KEY.slice(-4)}`);
 
 const start = Date.now();
 
@@ -95,12 +89,12 @@ try {
   const elapsed = Date.now() - start;
   const text = await response.text();
 
-  console.log(`  ${YELLOW}HTTP${RESET}   ${response.status} ${response.statusText}`);
-  console.log(`  ${YELLOW}耗时${RESET}  ${elapsed}ms\n`);
+  console.log(`[test-ai.mjs] HTTP   ${response.status} ${response.statusText}`);
+  console.log(`[test-ai.mjs] 耗时   ${elapsed}ms`);
 
   // API 返回非 2xx 时直接判定失败
   if (!response.ok) {
-    log(RED, 'FAIL', `API 返回错误: ${response.status}\n${text}`);
+    log('FAIL', `API 返回错误: ${response.status}\n${text}`);
     process.exit(1);
   }
 
@@ -108,28 +102,28 @@ try {
   try {
     data = JSON.parse(text);
   } catch {
-    log(RED, 'FAIL', `响应不是有效 JSON:\n${text}`);
+    log('FAIL', `响应不是有效 JSON:\n${text}`);
     process.exit(1);
   }
 
   // 提取 AI 回复文本
   const reply = data.choices?.[0]?.message?.content ?? '(空)';
 
-  console.log(`  ${CYAN}回复${RESET}   ${reply}\n`);
+  console.log(`[test-ai.mjs] 回复   ${reply}`);
 
   // 验证 AI 回复是否包含预期关键词"连接正常"
   if (reply.includes('连接正常')) {
-    log(GREEN, 'PASS', 'AI API 连接正常 ✓\n');
+    log('PASS', 'AI API 连接正常');
     process.exit(0);
   } else {
-    log(YELLOW, 'WARN', `返回了内容但并非预期回复: "${reply}"`);
-    log(GREEN, 'PASS', 'AI API 本身已连通 ✓\n');
+    log('WARN', `返回了内容但并非预期回复: "${reply}"`);
+    log('PASS', 'AI API 本身已连通');
     process.exit(0);
   }
 
 } catch (err) {
   const elapsed = Date.now() - start;
-  console.log(`  ${YELLOW}耗时${RESET}  ${elapsed}ms\n`);
-  log(RED, 'FAIL', `请求失败: ${err.message}\n`);
+  console.log(`[test-ai.mjs] 耗时   ${elapsed}ms`);
+  log('FAIL', `请求失败: ${err.message}`);
   process.exit(1);
 }

@@ -1,4 +1,5 @@
 import { handleMessage } from './message';
+import { jsonResponse } from './response';
 
 /**
  * QQ 机器人 Worker —— 接收 OneBot 协议 Webhook，验签后分发消息
@@ -11,7 +12,7 @@ import { handleMessage } from './message';
  */
 export default {
 	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
-		console.log('！！！request层:', request.method, request.url);
+		console.log('[index.ts]', request.method, request.url);
 
 		// 仅接受 POST 请求
 		if (request.method !== 'POST') {
@@ -58,20 +59,8 @@ export default {
 
 			return jsonResponse({});
 		} catch (e) {
-			console.error('Fetch Error:', e);
+			console.error('[index.ts] Fetch Error:', e);
 			return jsonResponse({});
 		}
 	},
 };
-
-/**
- * 统一构造 JSON 格式的 HTTP 响应
- * @param data   - 响应体对象
- * @param status - HTTP 状态码（默认 200）
- */
-function jsonResponse(data: any, status = 200) {
-	return new Response(JSON.stringify(data), {
-		status,
-		headers: { 'Content-Type': 'application/json' },
-	});
-}

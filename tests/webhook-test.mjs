@@ -10,9 +10,9 @@
  *   - wrangler dev 已在 http://localhost:8787 运行
  *
  * 测试内容：
- *   - 无签名头 → 403
- *   - 签名内容错误 → 403
- *   - 签名正确 → 200
+ *   - 若无签名头 → 403
+ *   - 若签名内容错误 → 403
+ *   - 若签名正确 → 200
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -48,7 +48,7 @@ const BASE_URL = process.env.WORKER_URL || 'http://localhost:8787';
 
 // 前置检查：TOKEN 必须存在
 if (!TOKEN) {
-  console.error('\n  TOKEN 未设置。请在 .dev.vars 或环境变量中配置。\n');
+  console.error('[webhook-test.mjs] [FAIL] TOKEN 未设置。请在 .dev.vars 或环境变量中配置。');
   process.exit(1);
 }
 
@@ -57,14 +57,8 @@ function computeSignature(body, key) {
   return crypto.createHmac('sha1', key).update(body).digest('hex');
 }
 
-// 终端颜色
-const GREEN = '\x1b[32m';
-const RED   = '\x1b[31m';
-const CYAN  = '\x1b[36m';
-const RESET = '\x1b[0m';
-
-console.log(`\n${CYAN}══════════════ Napcat Webhook 测试 ══════════════${RESET}\n`);
-console.log(`  Worker: ${BASE_URL}\n`);
+console.log('[webhook-test.mjs] Napcat Webhook 测试');
+console.log(`[webhook-test.mjs] Worker: ${BASE_URL}`);
 
 // 构造 OneBot 消息事件体（群聊 @ 消息示例）
 const onebotPayload = JSON.stringify({
@@ -82,7 +76,7 @@ const onebotPayload = JSON.stringify({
 // 测试用例
 const tests = [
   {
-    name: '无签名头 → 403',
+    name: '若无签名头 → 403',
     async run() {
       const res = await fetch(BASE_URL, { method: 'POST', body: '{}' });
       if (res.status !== 403) {
@@ -104,7 +98,7 @@ const tests = [
     },
   },
   {
-    name: '签名正确 → 200',
+    name: '若签名正确 → 200',
     async run() {
       const sig = computeSignature(onebotPayload, TOKEN);
       const res = await fetch(BASE_URL, {
@@ -126,20 +120,19 @@ let fail = 0;
 for (const { name, run } of tests) {
   try {
     await run();
-    console.log(`  ${GREEN}✓${RESET} ${name}`);
+    console.log(`[webhook-test.mjs] [PASS] ${name}`);
     pass++;
   } catch (err) {
-    console.log(`  ${RED}✗${RESET} ${name} — ${err.message}`);
+    console.log(`[webhook-test.mjs] [FAIL] ${name} — ${err.message}`);
     fail++;
   }
 }
 
-console.log(`\n${CYAN}════════════════════════════════════════════${RESET}`);
-console.log(`  结果: ${pass}/${tests.length} 通过`);
+console.log(`[webhook-test.mjs] 结果: ${pass}/${tests.length} 通过`);
 if (fail > 0) {
-  console.log(`  ${RED}${fail} 个失败${RESET}`);
+  console.log(`[webhook-test.mjs] [FAIL] ${fail} 个失败`);
   process.exit(1);
 } else {
-  console.log(`  ${GREEN}全部通过 ✓${RESET}\n`);
+  console.log('[webhook-test.mjs] [PASS] 全部通过');
   process.exit(0);
 }
