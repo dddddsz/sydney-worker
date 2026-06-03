@@ -3,6 +3,13 @@ import { callAI } from '../ai';
 import { jsonResponse } from '../response';
 import { logLine, LogContext } from '../ctx';
 
+/**
+ * 处理群聊消息
+ * 将用户文本发给 AI，返回回复并 @发送者
+ * @param filtered - 过滤后的消息对象（含 groupId）
+ * @param env      - Worker 环境变量
+ * @param ctx      - 日志上下文
+ */
 export async function handleGroupMessage(
   filtered: FilteredMessage,
   env: Env,

@@ -4,6 +4,12 @@ import { handle as handleRouter } from '../router';
 import { jsonResponse } from '../response';
 import { createLogContext, elapsed, logLine } from '../ctx';
 
+/**
+ * 守卫层入口
+ * 解析 Webhook → 验证签名 → 非消息事件直接返回 → 转路由层
+ * @param request - 原始 HTTP 请求
+ * @param env     - Worker 环境变量
+ */
 export async function handle(request: Request, env: Env): Promise<Response> {
   const ctx = createLogContext();
   logLine(ctx, 'guard', 'method=POST', 'START');

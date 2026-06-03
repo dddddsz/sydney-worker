@@ -1,5 +1,9 @@
 import { logLine, LogContext } from '../ctx';
 
+/**
+ * 过滤后的消息结构
+ * 包含消息类型、文本、用户信息、群信息等
+ */
 export interface FilteredMessage {
   msgType: 'group' | 'private';
   text: string;
@@ -10,8 +14,13 @@ export interface FilteredMessage {
   atSender: boolean;
 }
 
+/** 允许接收消息的群号 */
 const ALLOWED_GROUP_ID = 811759124;
 
+/**
+ * 判断消息类型：私聊 / 群聊 / 未知
+ * @param payload - 原始消息体
+ */
 function routeMessage(payload: any): 'group' | 'private' | null {
   const msgType = payload.message_type;
   if (msgType === 'group') return 'group';
@@ -19,24 +28,29 @@ function routeMessage(payload: any): 'group' | 'private' | null {
   return null;
 }
 
+/** 检查原始消息是否为空 */
 export function isEmptyMessage(rawMsg: string): boolean {
   return !rawMsg || !rawMsg.trim();
 }
 
+/** 检查是否为好友私聊 */
 export function isFriendChat(subType: string): boolean {
   return !subType || subType === 'friend';
 }
 
+/** 检查群号是否在允许列表中 */
 export function isAllowedGroup(groupId: number, allowedId: number): boolean {
   return groupId === allowedId;
 }
 
+/** 检查消息中是否有 @机器人 或 @全体成员 的 CQ 码段 */
 export function isAtBot(segments: any[], botQQ: string): boolean {
   return segments.some(
     (s: any) => s.type === 'at' && (s.data.qq === botQQ || s.data.qq === 'all'),
   );
 }
 
+/** 从 CQ 码段列表中提取纯文本内容 */
 export function extractText(segments: any[]): string {
   return segments
     .filter((s: any) => s.type === 'text')
@@ -45,6 +59,14 @@ export function extractText(segments: any[]): string {
     .trim();
 }
 
+/**
+ * 消息过滤主逻辑
+ * 校验消息类型 → 私聊: 非空+好友 → 群聊: 白名单+@机器人
+ * 通过后返回 FilteredMessage，否则返回 null
+ * @param payload - 原始消息体
+ * @param env     - Worker 环境变量（含 BOT_QQ）
+ * @param ctx     - 日志上下文
+ */
 export function filterMessage(
   payload: any,
   env: Env,

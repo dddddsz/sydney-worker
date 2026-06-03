@@ -5,6 +5,13 @@ import { handleGroupMessage } from '../chat/group';
 import { jsonResponse } from '../response';
 import { logLine, LogContext } from '../ctx';
 
+/**
+ * 路由层入口
+ * 消息过滤 → 意图识别 → 分发至私聊/群聊处理器
+ * @param payload - 解析后的 Webhook 消息体
+ * @param env     - Worker 环境变量
+ * @param ctx     - 日志上下文
+ */
 export async function handle(payload: any, env: Env, ctx: LogContext): Promise<Response> {
   const filtered = filterMessage(payload, env, ctx);
   if (!filtered) {

@@ -6,9 +6,8 @@
  *   node tests/ai-test.mjs       # 直接运行
  *
  * 前置条件：
- *   1. 在项目根目录创建 .dev.vars 文件，写入 AI_API_KEY=your_key
- *      或通过环境变量 AI_API_KEY 传入
- *   2. 在 .dev.vars 或环境变量中配置 AI_BASE_URL、AI_MODEL
+ *   在 .dev.vars 或环境变量中配置 AI_BASE_URL、AI_API_KEY、AI_MODEL
+ *   也可直接修改下方配置区域的值
  *
  * 执行流程：
  *   加载配置 → 发送 chat completions 请求 → 验证回复 → 输出结果
@@ -42,9 +41,11 @@ function getEnv(name, fallback = '') {
   return process.env[name] ?? dotenv[name] ?? fallback;
 }
 
+// ===== 配置（直接修改以下值，或通过环境变量 / .dev.vars 覆盖） =====
 const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
-const AI_MODEL   = getEnv('AI_MODEL');
+const AI_MODEL = getEnv('AI_MODEL');
+// ===================================================================
 
 // 统一日志输出
 function log(label, msg) {

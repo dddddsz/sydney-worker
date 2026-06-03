@@ -1,3 +1,7 @@
+/**
+ * OneBot Webhook 请求解析
+ * 校验请求方法、提取 X-Signature、解析 JSON 体
+ */
 const EXP_PREFIX = 'sha1=';
 
 export async function parseWebhook(request: Request): Promise<{

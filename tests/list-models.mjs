@@ -7,6 +7,7 @@
  *
  * 前置条件：
  *   在 .dev.vars 或环境变量中配置 AI_BASE_URL、AI_API_KEY
+ *   也可直接修改下方配置区域的值
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -35,8 +36,10 @@ function getEnv(name, fallback = '') {
   return process.env[name] ?? dotenv[name] ?? fallback;
 }
 
+// ===== 配置（直接修改以下值，或通过环境变量 / .dev.vars 覆盖） =====
 const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
+// ===================================================================
 
 if (!AI_BASE_URL) {
   console.log('[list-models.mjs] FAIL: AI_BASE_URL 未设置。请在 .dev.vars 或环境变量中配置。');

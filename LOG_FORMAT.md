@@ -7,7 +7,7 @@
 ```
 
 - `[req:{id}]` — 请求唯一标识（8位随机 hex），用于串联一次请求的全生命周期
-- `[{source}]` — 来源模块，小写，如 `guard`、`guard/auth`、`router`、`router/filter`、`chat/private`、`chat/group`、`chat/ai`
+- `[{source}]` — 来源模块，小写，如 `guard`、`guard/auth`、`router`、`router/filter`、`chat/private`、`chat/group`、`ai`、`ai/fallback`
 - `[{event}]` — 事件类型，大写，可选，用于标识生命周期节点或状态
 
 ## 各模块格式对照
@@ -27,10 +27,16 @@
 | `chat/group` | `[req:a1b2c3] [chat/group][START] groupId=811759124 text="你好"` |
 | | `[req:a1b2c3] [chat/group][END]   duration=902ms reply="你好呀 😊"` |
 | | `[req:a1b2c3] [chat/group][ERROR] duration=5000ms err="timeout"` |
-| `chat/ai` | `[req:a1b2c3] [chat/ai][REQ]  model=google/gemma-4` |
-| | `[req:a1b2c3] [chat/ai][BODY] {"model":"google/gemma-4",...}` |
-| | `[req:a1b2c3] [chat/ai][RESP] status=200 duration=890ms` |
-| | `[req:a1b2c3] [chat/ai][ERROR] status=502 duration=1200ms body="..."` |
+| `ai` | `[req:a1b2c3] [ai][REQ]  model=google/gemma-4` |
+| | `[req:a1b2c3] [ai][BODY] {"model":"google/gemma-4",...}` |
+| | `[req:a1b2c3] [ai][RESP] status=200 duration=890ms` |
+| | `[req:a1b2c3] [ai][ERROR] status=502 duration=1200ms body="..."` |
+| | `[req:a1b2c3] [ai][FALLBACK] fallback_reason="502 ..."` |
+| `ai/fallback` | `[req:a1b2c3] [ai/fallback][REQ]  model=fallback-model` |
+| | `[req:a1b2c3] [ai/fallback][BODY] {"model":"fallback-model",...}` |
+| | `[req:a1b2c3] [ai/fallback][RESP] status=200 duration=890ms` |
+| | `[req:a1b2c3] [ai/fallback][ERROR] status=502 duration=1200ms body="..."` |
+| | `[req:a1b2c3] [ai/fallback][RETRY_FAIL] both_failed duration=5000ms error="..."` |
 
 ## 事件分类说明
 
@@ -38,13 +44,15 @@
 |---|---|---|
 | `START` | 阶段开始（含上下文） | guard, chat/private, chat/group |
 | `END` | 阶段正常结束（含耗时/结果） | guard, chat/private, chat/group |
-| `ERROR` | 阶段异常结束（含耗时/错误信息） | guard, chat/private, chat/group, chat/ai |
+| `ERROR` | 阶段异常结束（含耗时/错误信息） | guard, chat/private, chat/group, ai, ai/fallback |
 | `OK` | 内部检查通过 | guard/auth |
 | `FAIL` | 内部检查未通过 | guard/auth |
 | `IGNORE` | 消息被过滤/忽略 | router/filter |
-| `REQ` | 外部 API 请求发出 | chat/ai |
-| `BODY` | 请求完整 JSON 体 | chat/ai |
-| `RESP` | 外部 API 成功响应 | chat/ai |
+| `REQ` | 外部 API 请求发出 | ai, ai/fallback |
+| `BODY` | 请求完整 JSON 体 | ai, ai/fallback |
+| `RESP` | 外部 API 成功响应 | ai, ai/fallback |
+| `FALLBACK` | 首选 API 失败，切换到次选 | ai |
+| `RETRY_FAIL` | 次选也失败 | ai/fallback |
 
 ## 规则
 
