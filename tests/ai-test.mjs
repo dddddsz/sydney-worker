@@ -2,13 +2,13 @@
  * AI API 联通性测试脚本
  *
  * 使用方法：
- *   npm run test-ai              # 运行测试
- *   node tests/test-ai.mjs       # 直接运行
+ *   npm run ai-test              # 运行测试
+ *   node tests/ai-test.mjs       # 直接运行
  *
  * 前置条件：
  *   1. 在项目根目录创建 .dev.vars 文件，写入 AI_API_KEY=your_key
  *      或通过环境变量 AI_API_KEY 传入
- *   2. 可选配置 AI_BASE_URL、AI_MODEL（有默认值）
+ *   2. 在 .dev.vars 或环境变量中配置 AI_BASE_URL、AI_MODEL
  *
  * 执行流程：
  *   加载配置 → 发送 chat completions 请求 → 验证回复 → 输出结果
@@ -42,16 +42,24 @@ function getEnv(name, fallback = '') {
   return process.env[name] ?? dotenv[name] ?? fallback;
 }
 
-const AI_BASE_URL = getEnv('AI_BASE_URL', 'https://api.anyapi.ai/v1');
+const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
-const AI_MODEL   = getEnv('AI_MODEL', 'google/gemma-4-26b-a4b-it:free');
+const AI_MODEL   = getEnv('AI_MODEL');
 
 // 统一日志输出
 function log(label, msg) {
-  console.log(`[test-ai.mjs] [${label}] ${msg}`);
+  console.log(`[ai-test.mjs] [${label}] ${msg}`);
 }
 
-// 前置检查：API Key 必须存在
+// 前置检查：必需参数必须存在
+if (!AI_BASE_URL) {
+  log('FAIL', 'AI_BASE_URL 未设置。请在 .dev.vars 或环境变量中配置。');
+  process.exit(1);
+}
+if (!AI_MODEL) {
+  log('FAIL', 'AI_MODEL 未设置。请在 .dev.vars 或环境变量中配置。');
+  process.exit(1);
+}
 if (!AI_API_KEY) {
   log('FAIL', 'AI_API_KEY 未设置。请在 .dev.vars 或环境变量中配置。');
   process.exit(1);
@@ -68,10 +76,10 @@ const body = {
 };
 
 // 打印请求参数摘要（密钥脱敏显示首尾各 4 位）
-console.log('[test-ai.mjs] AI API 联通测试');
-console.log(`[test-ai.mjs] URL    ${AI_BASE_URL}`);
-console.log(`[test-ai.mjs] Model  ${AI_MODEL}`);
-console.log(`[test-ai.mjs] Key    ${AI_API_KEY.slice(0, 8)}...${AI_API_KEY.slice(-4)}`);
+console.log('[ai-test.mjs] AI API 联通测试');
+console.log(`[ai-test.mjs] URL    ${AI_BASE_URL}`);
+console.log(`[ai-test.mjs] Model  ${AI_MODEL}`);
+console.log(`[ai-test.mjs] Key    ${AI_API_KEY.slice(0, 8)}...${AI_API_KEY.slice(-4)}`);
 
 const start = Date.now();
 
@@ -89,8 +97,8 @@ try {
   const elapsed = Date.now() - start;
   const text = await response.text();
 
-  console.log(`[test-ai.mjs] HTTP   ${response.status} ${response.statusText}`);
-  console.log(`[test-ai.mjs] 耗时   ${elapsed}ms`);
+  console.log(`[ai-test.mjs] HTTP   ${response.status} ${response.statusText}`);
+  console.log(`[ai-test.mjs] 耗时   ${elapsed}ms`);
 
   // API 返回非 2xx 时直接判定失败
   if (!response.ok) {
@@ -109,7 +117,7 @@ try {
   // 提取 AI 回复文本
   const reply = data.choices?.[0]?.message?.content ?? '(空)';
 
-  console.log(`[test-ai.mjs] 回复   ${reply}`);
+  console.log(`[ai-test.mjs] 回复   ${reply}`);
 
   // 验证 AI 回复是否包含预期关键词"连接正常"
   if (reply.includes('连接正常')) {
@@ -123,7 +131,7 @@ try {
 
 } catch (err) {
   const elapsed = Date.now() - start;
-  console.log(`[test-ai.mjs] 耗时   ${elapsed}ms`);
+  console.log(`[ai-test.mjs] 耗时   ${elapsed}ms`);
   log('FAIL', `请求失败: ${err.message}`);
   process.exit(1);
 }

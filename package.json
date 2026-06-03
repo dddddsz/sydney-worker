@@ -8,7 +8,8 @@
     "start": "wrangler dev",
     "test-webhook": "node tests/webhook-test.mjs",
     "cf-typegen": "wrangler types",
-    "test-ai": "node tests/test-ai.mjs"
+    "ai-test": "node tests/ai-test.mjs",
+    "list-models": "node tests/list-models.mjs"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

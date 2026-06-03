@@ -2,8 +2,8 @@
  * Napcat Webhook 连通性测试
  *
  * 使用方式：
- *   1. 终端 1: npx wrangler dev
- *   2. 终端 2: npm run test-webhook
+ *   先终端 1: npx wrangler dev（wrangler dev）
+ *   再终端 2: npm run test-webhook
  *
  * 前置条件：
  *   - .dev.vars 中配置了 TOKEN（与 wrangler.jsonc 中的签名密钥一致）
@@ -44,11 +44,15 @@ function getEnv(name, fallback = '') {
 }
 
 const TOKEN = getEnv('TOKEN');
-const BASE_URL = process.env.WORKER_URL || 'http://localhost:8787';
+const BASE_URL = getEnv('WORKER_URL');
 
 // 前置检查：TOKEN 必须存在
 if (!TOKEN) {
   console.error('[webhook-test.mjs] [FAIL] TOKEN 未设置。请在 .dev.vars 或环境变量中配置。');
+  process.exit(1);
+}
+if (!BASE_URL) {
+  console.error('[webhook-test.mjs] [FAIL] WORKER_URL 未设置。请在 .dev.vars 或环境变量中配置。');
   process.exit(1);
 }
 
