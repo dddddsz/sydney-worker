@@ -8,20 +8,25 @@
 
 | 变量 | 说明 | 必需 |
 |---|---|---|
-| `TOKEN` | Webhook HMAC 签名密钥 | ✅ |
+| `TOKEN` | Webhook HMAC 签名密钥(一般是napcat的) | ✅ |
 | `AI_BASE_URL` | LLM API 地址 | ✅ |
 | `AI_API_KEY` | LLM API 密钥 | ✅ |
 | `AI_MODEL` | 模型名 | ✅ |
 | `AI_FALLBACK_BASE_URL` | 次选 LLM 地址 | ❌ |
 | `AI_FALLBACK_API_KEY` | 次选 LLM 密钥 | ❌ |
 | `AI_FALLBACK_MODEL` | 次选 LLM 模型 | ❌ |
-| `BOT_QQ` | 机器人 QQ 号 | ✅ |
+| `BOT_QQ` | 识别的 QQ 群号 | ✅ |
 
 ### 快速开始
 
 ```bash
+
+# node版本 v24.16.0
+# 看情况决定自己的版本吧
+
 # 1. 安装依赖
 pnpm install
+npm install
 
 # 2. 配置环境变量（编辑 .dev.vars）
 

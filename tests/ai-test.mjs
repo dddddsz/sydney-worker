@@ -13,46 +13,16 @@
  *   加载配置 → 发送 chat completions 请求 → 验证回复 → 输出结果
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { getEnv, maskKey, buildApiUrl, logResponse } from './_shared.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
-
-// 从 .dev.vars 文件加载环境变量（KEY=VAL 格式，支持 # 注释）
-function loadDotEnv(path) {
-  const vars = {};
-  if (!existsSync(path)) return vars;
-  for (const line of readFileSync(path, 'utf-8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const idx = trimmed.indexOf('=');
-    if (idx === -1) continue;
-    vars[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
-  }
-  return vars;
-}
-
-const dotenv = loadDotEnv(resolve(root, '.dev.vars'));
-
-// 按优先级读取配置：环境变量 > .dev.vars > 默认值
-function getEnv(name, fallback = '') {
-  return process.env[name] ?? dotenv[name] ?? fallback;
-}
-
-// ===== 配置（直接修改以下值，或通过环境变量 / .dev.vars 覆盖） =====
 const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
 const AI_MODEL = getEnv('AI_MODEL');
-// ===================================================================
 
-// 统一日志输出
 function log(label, msg) {
   console.log(`[ai-test.mjs] [${label}] ${msg}`);
 }
 
-// 前置检查：必需参数必须存在
 if (!AI_BASE_URL) {
   log('FAIL', 'AI_BASE_URL 未设置。请在 .dev.vars 或环境变量中配置。');
   process.exit(1);
@@ -66,8 +36,8 @@ if (!AI_API_KEY) {
   process.exit(1);
 }
 
-// 构造 chat completions 请求
-const url = `${AI_BASE_URL.replace(/\/+$/, '')}/chat/completions`;
+const CHAT_URL = buildApiUrl(AI_BASE_URL, 'chat/completions');
+
 const body = {
   model: AI_MODEL,
   messages: [
@@ -76,17 +46,15 @@ const body = {
   max_tokens: 64,
 };
 
-// 打印请求参数摘要（密钥脱敏显示首尾各 4 位）
 console.log('[ai-test.mjs] AI API 联通测试');
-console.log(`[ai-test.mjs] URL    ${AI_BASE_URL}`);
+console.log(`[ai-test.mjs] URL    ${CHAT_URL}`);
 console.log(`[ai-test.mjs] Model  ${AI_MODEL}`);
-console.log(`[ai-test.mjs] Key    ${AI_API_KEY.slice(0, 8)}...${AI_API_KEY.slice(-4)}`);
+console.log(`[ai-test.mjs] Key    ${maskKey(AI_API_KEY)}`);
 
 const start = Date.now();
 
 try {
-  // 发送请求到 AI API
-  const response = await fetch(url, {
+  const response = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${AI_API_KEY}`,
@@ -96,14 +64,18 @@ try {
   });
 
   const elapsed = Date.now() - start;
+  const contentType = response.headers.get('content-type') || 'unknown';
   const text = await response.text();
 
-  console.log(`[ai-test.mjs] HTTP   ${response.status} ${response.statusText}`);
-  console.log(`[ai-test.mjs] 耗时   ${elapsed}ms`);
+  logResponse('[ai-test.mjs]', { url: CHAT_URL, status: response.status, statusText: response.statusText, elapsed, contentType, body: text });
 
-  // API 返回非 2xx 时直接判定失败
   if (!response.ok) {
-    log('FAIL', `API 返回错误: ${response.status}\n${text}`);
+    log('FAIL', `HTTP ${response.status}`);
+    process.exit(1);
+  }
+
+  if (!contentType.includes('application/json')) {
+    log('FAIL', `期望 JSON 但得到 ${contentType}`);
     process.exit(1);
   }
 
@@ -111,16 +83,14 @@ try {
   try {
     data = JSON.parse(text);
   } catch {
-    log('FAIL', `响应不是有效 JSON:\n${text}`);
+    log('FAIL', '响应不是合法 JSON');
     process.exit(1);
   }
 
-  // 提取 AI 回复文本
   const reply = data.choices?.[0]?.message?.content ?? '(空)';
 
   console.log(`[ai-test.mjs] 回复   ${reply}`);
 
-  // 验证 AI 回复是否包含预期关键词"连接正常"
   if (reply.includes('连接正常')) {
     log('PASS', 'AI API 连接正常');
     process.exit(0);
