@@ -26,7 +26,6 @@
 
 # 1. 安装依赖
 pnpm install
-npm install
 
 # 2. 配置环境变量（编辑 .dev.vars）
 
