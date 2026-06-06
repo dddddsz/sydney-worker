@@ -22,19 +22,38 @@ export async function handlePrivateMessage(
   try {
     const store = new SessionStore(env.sydney_sessions);
     const sessionId = store.buildId('private', filtered.userId);
+    const text = filtered.text.trim();
+
+    if (text.toLowerCase() === '/clear') {
+      await store.delete(sessionId, ctx);
+      logLine(ctx, 'chat/private', 'session cleared', 'CMD');
+      return jsonResponse({ reply: '对话记忆已清除 🧹' });
+    }
+
+    if (text.toLowerCase() === '/status') {
+      const session = await store.get(sessionId, ctx);
+      if (!session) {
+        return jsonResponse({ reply: '📊 暂无对话记录，开始聊天吧' });
+      }
+      const count = session.messages.length;
+      const created = new Date(session.created_at).toLocaleString('zh-CN');
+      const remaining = 20 - count;
+      return jsonResponse({ reply: `📊 会话状态\n  消息数：${count} 条（上限 20）\n  创建时间：${created}\n  还可记录：${remaining} 条` });
+    }
+
     const history = await store.getContext(sessionId);
 
     const reply = await callAI(
       [
         ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user', content: filtered.text },
+        { role: 'user', content: text },
       ],
       env,
       ctx,
     );
 
     const now = Date.now();
-    await store.append(sessionId, { role: 'user', content: filtered.text, timestamp: now }, ctx);
+    await store.append(sessionId, { role: 'user', content: text, timestamp: now }, ctx);
     if (reply) {
       await store.append(sessionId, { role: 'assistant', content: reply, timestamp: Date.now() }, ctx);
     }
