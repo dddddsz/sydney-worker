@@ -15,7 +15,8 @@
 | `AI_FALLBACK_BASE_URL` | 次选 LLM 地址 | ❌ |
 | `AI_FALLBACK_API_KEY` | 次选 LLM 密钥 | ❌ |
 | `AI_FALLBACK_MODEL` | 次选 LLM 模型 | ❌ |
-| `BOT_QQ` | 识别的 QQ 群号 | ✅ |
+| `BOT_QQ` | 机器人自己的 QQ 号（用于识别群消息中是否 @ 机器人） | ✅ |
+| `ALLOWED_GROUP_ID` | 允许接收消息的 QQ 群号 | ✅ |
 
 ### 快速开始
 
@@ -54,7 +55,7 @@ npx wrangler deploy
 |---|---|
 | tests/ai-test.mjs | AI API 联通性测试 |
 | tests/list-models.mjs | 列出 API 可用模型 |
-| tests/webhook-test.mjs | Webhook 端到端集成测试 |
+| tests/webhook-test.mjs | Webhook 端到端集成测试（需设置qq号） |
 
 运行：`node tests/<脚本名>.mjs`
 

@@ -5,6 +5,7 @@ interface __BaseEnv_Env {
 	AI_BASE_URL: string;
 	AI_MODEL: string;
 	BOT_QQ: string;
+	ALLOWED_GROUP_ID: string;
 	AI_API_KEY: string;
 	AI_FALLBACK_BASE_URL: string;
 	AI_FALLBACK_API_KEY: string;
@@ -22,7 +23,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AI_BASE_URL" | "AI_MODEL" | "BOT_QQ" | "AI_API_KEY" | "AI_FALLBACK_BASE_URL" | "AI_FALLBACK_API_KEY" | "AI_FALLBACK_MODEL" | "TOKEN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AI_BASE_URL" | "AI_MODEL" | "BOT_QQ" | "ALLOWED_GROUP_ID" | "AI_API_KEY" | "AI_FALLBACK_BASE_URL" | "AI_FALLBACK_API_KEY" | "AI_FALLBACK_MODEL" | "TOKEN">> {}
 }
 
 // Begin runtime types

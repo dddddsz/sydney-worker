@@ -14,9 +14,6 @@ export interface FilteredMessage {
   atSender: boolean;
 }
 
-/** 允许接收消息的群号 */
-const ALLOWED_GROUP_ID = 811759124;
-
 /**
  * 判断消息类型：私聊 / 群聊 / 未知
  * @param payload - 原始消息体
@@ -64,7 +61,7 @@ export function extractText(segments: any[]): string {
  * 校验消息类型 → 私聊: 非空+好友 → 群聊: 白名单+@机器人
  * 通过后返回 FilteredMessage，否则返回 null
  * @param payload - 原始消息体
- * @param env     - Worker 环境变量（含 BOT_QQ）
+ * @param env     - Worker 环境变量（含 BOT_QQ、ALLOWED_GROUP_ID）
  * @param ctx     - 日志上下文
  */
 export function filterMessage(
@@ -99,7 +96,8 @@ export function filterMessage(
 
   if (msgType === 'group') {
     const groupId = payload.group_id;
-    if (!isAllowedGroup(groupId, ALLOWED_GROUP_ID)) {
+    const allowedGroupId = Number(env.ALLOWED_GROUP_ID);
+    if (!isAllowedGroup(groupId, allowedGroupId)) {
       logLine(ctx, 'router/filter', `群 ${groupId} 不在白名单内`, 'IGNORE');
       return null;
     }
