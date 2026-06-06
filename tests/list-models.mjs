@@ -10,7 +10,7 @@
  *   也可直接修改下方配置区域的值
  */
 
-import { getEnv, maskKey, buildApiUrl, logResponse } from './_shared.mjs';
+import { getEnv, maskKey, logResponse } from './_shared.mjs';
 
 const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
@@ -24,7 +24,7 @@ if (!AI_API_KEY) {
   process.exit(1);
 }
 
-const MODELS_URL = buildApiUrl(AI_BASE_URL, 'models');
+const MODELS_URL = AI_BASE_URL.replace(/\/+$/, '') + '/models';
 
 console.log(`[list-models.mjs] 获取模型列表`);
 console.log(`[list-models.mjs] URL    ${MODELS_URL}`);

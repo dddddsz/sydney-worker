@@ -20,7 +20,7 @@ async function callProvider(
   reqStart: number,
   source: string,
 ): Promise<string> {
-  const url = `${baseUrl}/chat/completions`;
+  const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
 
   logLine(ctx, source, `model=${model}`, 'REQ');
 

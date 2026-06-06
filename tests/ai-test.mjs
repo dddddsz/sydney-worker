@@ -13,7 +13,7 @@
  *   加载配置 → 发送 chat completions 请求 → 验证回复 → 输出结果
  */
 
-import { getEnv, maskKey, buildApiUrl, logResponse } from './_shared.mjs';
+import { getEnv, maskKey, logResponse } from './_shared.mjs';
 
 const AI_BASE_URL = getEnv('AI_BASE_URL');
 const AI_API_KEY = getEnv('AI_API_KEY');
@@ -36,12 +36,12 @@ if (!AI_API_KEY) {
   process.exit(1);
 }
 
-const CHAT_URL = buildApiUrl(AI_BASE_URL, 'chat/completions');
+const CHAT_URL = AI_BASE_URL.replace(/\/+$/, '') + '/chat/completions';
 
 const body = {
   model: AI_MODEL,
   messages: [
-    { role: 'user', content: '你好，请回复"连接正常"这四个字，不要回复其他内容。' },
+    { role: 'user', content: '请回复"连接正常"这四个字，不要回复其他内容。' },
   ],
   max_tokens: 64,
 };

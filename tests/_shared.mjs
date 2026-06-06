@@ -1,3 +1,13 @@
+/**
+ * 测试工具模块
+ *
+ * 提供测试脚本公用的辅助函数和常量：
+ * - root         项目根目录路径
+ * - getEnv       读取环境变量（process.env → .dev.vars → 默认值）
+ * - maskKey      掩码 API 密钥（仅显示首尾位）
+ * - logResponse  格式化输出 HTTP 响应详情
+ */
+
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -28,12 +38,6 @@ export function getEnv(name, fallback = '') {
 export function maskKey(key) {
   if (!key || key.length < 12) return key;
   return `${key.slice(0, 8)}...${key.slice(-4)}`;
-}
-
-export function buildApiUrl(baseUrl, endpoint) {
-  const base = baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
-  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${base}/v1${path}`;
 }
 
 export function logResponse(prefix, details) {

@@ -14,6 +14,13 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"d1_databases": [
+		{
+			"binding": "sydney_sessions",
+			"database_name": "sydney-sessions",
+			"database_id": "e44ee38d-42dc-44a4-8bc9-f840b9115e45"
+		}
+	],
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -31,7 +38,12 @@
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
-	// "vars": {  "MY_VARIABLE": "production_value" }
+	"vars": {
+		"AI_BASE_URL": "https://aoxo.5920721.xyz/v1",
+		"AI_FALLBACK_BASE_URL": "https://aoxo.5920721.xyz/v1",
+		"AI_MODEL": "gpt-5.5",
+		"AI_FALLBACK_MODEL": "gpt-5.4"
+	}
 	/**
 	 * Static Assets
 	 * https://developers.cloudflare.com/workers/static-assets/binding/
