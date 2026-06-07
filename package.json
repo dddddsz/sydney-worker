@@ -2,6 +2,7 @@
   "name": "sydney-worker",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@10.8.1",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
