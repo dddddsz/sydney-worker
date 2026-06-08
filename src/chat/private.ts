@@ -7,5 +7,5 @@ export async function handlePrivateMessage(
   env: Env,
   ctx: LogContext,
 ): Promise<Response> {
-  return handleChat(filtered, env, ctx, { type: 'private' });
+  return handleChat(filtered, env, ctx, { type: 'private', atSender: false });
 }

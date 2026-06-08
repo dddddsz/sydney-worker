@@ -6,6 +6,7 @@ export async function handleGroupMessage(
   filtered: FilteredMessage,
   env: Env,
   ctx: LogContext,
+  atSender: boolean,
 ): Promise<Response> {
-  return handleChat(filtered, env, ctx, { type: 'group', groupId: filtered.groupId });
+  return handleChat(filtered, env, ctx, { type: 'group', groupId: filtered.groupId!, atSender });
 }

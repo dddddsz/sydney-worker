@@ -7,6 +7,22 @@ import { SessionStore } from '../session';
 interface ChatOptions {
   type: 'private' | 'group';
   groupId?: number;
+  atSender: boolean;
+}
+
+export async function storeContext(
+  filtered: FilteredMessage,
+  env: Env,
+): Promise<void> {
+  const store = new SessionStore(env.sydney_sessions);
+  const sessionId = store.buildId('group', filtered.userId, filtered.groupId!);
+  const displayName = filtered.card || filtered.nickname;
+  await store.append(sessionId, {
+    role: 'user',
+    content: filtered.text,
+    timestamp: Date.now(),
+    name: displayName,
+  });
 }
 
 export async function handleChat(
@@ -20,8 +36,6 @@ export async function handleChat(
   const logMeta = options.type === 'group' ? `groupId=${options.groupId} text="${filtered.text}"` : `text="${filtered.text}"`;
   logLine(ctx, source, logMeta, 'START');
 
-  const atSender = options.type === 'group';
-
   try {
     const store = new SessionStore(env.sydney_sessions);
     const sessionId = store.buildId(options.type, filtered.userId, options.groupId);
@@ -30,18 +44,18 @@ export async function handleChat(
     if (text.toLowerCase() === '/clear') {
       await store.delete(sessionId, ctx);
       logLine(ctx, source, 'session cleared', 'CMD');
-      return jsonResponse({ reply: '对话记忆已清除 🧹', at_sender: atSender || undefined });
+      return jsonResponse({ reply: '对话记忆已清除 🧹', at_sender: options.atSender || undefined });
     }
 
     if (text.toLowerCase() === '/status') {
       const session = await store.get(sessionId, ctx);
       if (!session) {
-        return jsonResponse({ reply: '📊 暂无对话记录，开始聊天吧', at_sender: atSender || undefined });
+        return jsonResponse({ reply: '📊 暂无对话记录，开始聊天吧', at_sender: options.atSender || undefined });
       }
       const count = session.messages.length;
       const created = new Date(session.created_at).toLocaleString('zh-CN');
       const remaining = 20 - count;
-      return jsonResponse({ reply: `📊 会话状态\n  消息数：${count} 条（上限 20）\n  创建时间：${created}\n  还可记录：${remaining} 条`, at_sender: atSender || undefined });
+      return jsonResponse({ reply: `📊 会话状态\n  消息数：${count} 条（上限 20）\n  创建时间：${created}\n  还可记录：${remaining} 条`, at_sender: options.atSender || undefined });
     }
 
     const displayName = options.type === 'group'
@@ -71,12 +85,12 @@ export async function handleChat(
 
     logLine(ctx, source, `duration=${Date.now() - chatStart}ms reply="${reply}"`, 'END');
     const body: any = { reply };
-    if (atSender) body.at_sender = true;
+    if (options.atSender) body.at_sender = true;
     return jsonResponse(body);
   } catch (err: any) {
     logLine(ctx, source, `duration=${Date.now() - chatStart}ms err="${err?.message ?? err}"`, 'ERROR');
     const body: any = { reply: 'AI 暂时繁忙，请稍后再试' };
-    if (atSender) body.at_sender = true;
+    if (options.atSender) body.at_sender = true;
     return jsonResponse(body);
   }
 }

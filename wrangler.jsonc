@@ -43,7 +43,8 @@
 		"AI_FALLBACK_BASE_URL": "https://api.siliconflow.cn/v1",
 		"AI_MODEL": "gpt-5.5",
 		"AI_FALLBACK_MODEL": "deepseek-ai/DeepSeek-V4-Flash",
-		"AI_TIMEOUT": "25000"
+		"AI_TIMEOUT": "25000",
+		"INTERCEPT_KEYWORDS": "Sydney"
 	}
 	/**
 	 * Static Assets

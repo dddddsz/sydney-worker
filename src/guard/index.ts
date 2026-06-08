@@ -7,10 +7,11 @@ import { createLogContext, elapsed, logLine } from '../ctx';
 /**
  * 守卫层入口
  * 解析 Webhook → 验证签名 → 非消息事件直接返回 → 转路由层
- * @param request - 原始 HTTP 请求
- * @param env     - Worker 环境变量
+ * @param request  - 原始 HTTP 请求
+ * @param env      - Worker 环境变量
+ * @param execCtx  - Worker ExecutionContext（用于 waitUntil）
  */
-export async function handle(request: Request, env: Env): Promise<Response> {
+export async function handle(request: Request, env: Env, execCtx: ExecutionContext): Promise<Response> {
   const ctx = createLogContext();
   logLine(ctx, 'guard', 'method=POST', 'START');
 
@@ -28,7 +29,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
       return jsonResponse({});
     }
 
-    const response = await handleRouter(payload, env, ctx);
+    const response = await handleRouter(payload, env, ctx, execCtx);
     logLine(ctx, 'guard', `status=${response.status} duration=${elapsed(ctx)}`, 'END');
     return response;
   } catch (e: any) {

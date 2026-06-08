@@ -12,6 +12,8 @@ export interface FilteredMessage {
   card?: string;
   groupId?: number;
   atSender: boolean;
+  isAtBot: boolean;
+  rawMessage: string;
 }
 
 /**
@@ -91,6 +93,8 @@ export function filterMessage(
       userId: payload.user_id,
       nickname: payload.sender.nickname,
       atSender: false,
+      isAtBot: false,
+      rawMessage: rawMsg,
     };
   }
 
@@ -102,11 +106,12 @@ export function filterMessage(
       return null;
     }
     const segments = payload.message ?? [];
-    if (!isAtBot(segments, env.BOT_QQ)) {
-      logLine(ctx, 'router/filter', `未@机器人，跳过: ${payload.raw_message}`, 'IGNORE');
+    const atBot = isAtBot(segments, env.BOT_QQ);
+    const cleanText = extractText(segments);
+    if (!cleanText && !atBot) {
+      logLine(ctx, 'router/filter', `空消息且未@机器人，跳过: ${payload.raw_message}`, 'IGNORE');
       return null;
     }
-    const cleanText = extractText(segments);
     return {
       msgType: 'group',
       text: cleanText,
@@ -114,7 +119,9 @@ export function filterMessage(
       nickname: payload.sender.nickname,
       card: payload.sender.card,
       groupId,
-      atSender: true,
+      atSender: atBot,
+      isAtBot: atBot,
+      rawMessage: payload.raw_message,
     };
   }
 
