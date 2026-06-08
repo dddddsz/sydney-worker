@@ -2,6 +2,7 @@ export interface SessionMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  name?: string;
 }
 
 export interface Session {

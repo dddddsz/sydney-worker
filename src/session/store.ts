@@ -10,7 +10,7 @@ export class SessionStore {
     if (type === 'private') {
       return `private:${userId}`;
     }
-    return `group:${userId}:${groupId}`;
+    return `group:${groupId}`;
   }
 
   async get(id: string, ctx?: LogContext): Promise<Session | null> {
@@ -86,8 +86,8 @@ export class SessionStore {
     if (!session) {
       const parts = id.split(':');
       const type = parts[0] as 'private' | 'group';
-      const userId = Number(parts[1]);
-      const groupId = parts.length > 2 ? Number(parts[2]) : null;
+      const userId = type === 'private' ? Number(parts[1]) : 0;
+      const groupId = type === 'private' ? null : Number(parts[1]);
 
       session = {
         id,

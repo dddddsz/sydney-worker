@@ -44,19 +44,27 @@ export async function handleChat(
       return jsonResponse({ reply: `📊 会话状态\n  消息数：${count} 条（上限 20）\n  创建时间：${created}\n  还可记录：${remaining} 条`, at_sender: atSender || undefined });
     }
 
+    const displayName = options.type === 'group'
+      ? (filtered.card || filtered.nickname)
+      : filtered.nickname;
+
     const history = await store.getContext(sessionId);
 
     const reply = await callAI(
       [
-        ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user', content: text },
+        ...history.map(m => ({
+          role: m.role,
+          content: m.content,
+          ...(m.name ? { name: m.name } : {}),
+        })),
+        { role: 'user', content: text, name: displayName },
       ],
       env,
       ctx,
     );
 
     const now = Date.now();
-    await store.append(sessionId, { role: 'user', content: text, timestamp: now }, ctx);
+    await store.append(sessionId, { role: 'user', content: text, timestamp: now, name: displayName }, ctx);
     if (reply) {
       await store.append(sessionId, { role: 'assistant', content: reply, timestamp: Date.now() }, ctx);
     }

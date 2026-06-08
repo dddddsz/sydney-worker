@@ -1,6 +1,12 @@
 import { SYSTEM_PROMPT } from './prompt';
 import { logLine, LogContext } from '../ctx';
 
+export interface ChatMessage {
+  role: string;
+  content: string;
+  name?: string;
+}
+
 /**
  * 单次 LLM API 调用
  * @param messages - 用户消息列表
@@ -10,15 +16,17 @@ import { logLine, LogContext } from '../ctx';
  * @param ctx      - 日志上下文
  * @param reqStart - 请求开始时间（用于计算耗时）
  * @param source   - 日志来源（ai / ai/fallback）
+ * @param timeout  - 请求超时时间（毫秒）
  */
 async function callProvider(
-  messages: { role: string; content: string }[],
+  messages: ChatMessage[],
   baseUrl: string,
   apiKey: string,
   model: string,
   ctx: LogContext,
   reqStart: number,
   source: string,
+  timeout: number,
 ): Promise<string> {
   const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
 
@@ -35,14 +43,24 @@ async function callProvider(
 
   logLine(ctx, source, JSON.stringify(body), 'BODY');
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeout),
+    });
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      logLine(ctx, source, `timeout=${timeout}ms duration=${Date.now() - reqStart}ms`, 'TIMEOUT');
+      throw new Error(`Request timed out after ${timeout}ms`);
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     const errText = await response.text();
@@ -65,11 +83,12 @@ async function callProvider(
  * @returns AI 回复文本
  */
 export async function callAI(
-  messages: { role: string; content: string }[],
+  messages: ChatMessage[],
   env: Env,
   ctx: LogContext,
 ): Promise<string> {
   const reqStart = Date.now();
+  const timeout = Number(env.AI_TIMEOUT) || 25000;
 
   try {
     return await callProvider(
@@ -80,6 +99,7 @@ export async function callAI(
       ctx,
       reqStart,
       'ai',
+      timeout,
     );
   } catch (primaryErr: any) {
     logLine(ctx, 'ai', `fallback_reason="${primaryErr.message}" duration=${Date.now() - reqStart}ms`, 'FALLBACK');
@@ -93,6 +113,7 @@ export async function callAI(
         ctx,
         Date.now(),
         'ai/fallback',
+        timeout,
       );
     } catch (fallbackErr: any) {
       logLine(ctx, 'ai/fallback', `both_failed duration=${Date.now() - reqStart}ms error="${fallbackErr.message}"`, 'RETRY_FAIL');
