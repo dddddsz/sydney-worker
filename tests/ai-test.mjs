@@ -5,30 +5,38 @@
  *   npm run ai-test              # 运行测试
  *   node tests/ai-test.mjs       # 直接运行
  *
- * 前置条件：
- *   在 .dev.vars 或环境变量中配置 AI_BASE_URL、AI_API_KEY、AI_MODEL
- *   也可直接修改下方配置区域的值
+ * 前置条件（环境变量）：
+ *   AI_BASE_URL            来自 wrangler.jsonc 的 vars
+ *   AI_MODEL               来自 wrangler.jsonc 的 vars
+ *   AI_FALLBACK_BASE_URL   来自 wrangler.jsonc 的 vars（可选）
+ *   AI_FALLBACK_MODEL      来自 wrangler.jsonc 的 vars（可选）
+ *   AI_API_KEY             来自 .dev.vars 或环境变量
+ *   AI_FALLBACK_API_KEY    来自 .dev.vars 或环境变量（可选）
  *
  * 执行流程：
- *   加载配置 → 发送 chat completions 请求 → 验证回复 → 输出结果
+ *   阶段 1: 主        → AI_BASE_URL + AI_MODEL + AI_API_KEY
+ *   阶段 2: Fallback  → AI_FALLBACK_BASE_URL + AI_FALLBACK_MODEL + AI_FALLBACK_API_KEY
  */
 
-import { getEnv, maskKey, logResponse } from './_shared.mjs';
+import { getWranglerVar, getEnv, maskKey, logResponse } from './_shared.mjs';
 
-const AI_BASE_URL = getEnv('AI_BASE_URL');
+const AI_BASE_URL = getWranglerVar('AI_BASE_URL');
+const AI_FALLBACK_BASE_URL = getWranglerVar('AI_FALLBACK_BASE_URL');
+const AI_MODEL = getWranglerVar('AI_MODEL');
+const AI_FALLBACK_MODEL = getWranglerVar('AI_FALLBACK_MODEL');
 const AI_API_KEY = getEnv('AI_API_KEY');
-const AI_MODEL = getEnv('AI_MODEL');
+const AI_FALLBACK_API_KEY = getEnv('AI_FALLBACK_API_KEY');
 
 function log(label, msg) {
   console.log(`[ai-test.mjs] [${label}] ${msg}`);
 }
 
 if (!AI_BASE_URL) {
-  log('FAIL', 'AI_BASE_URL 未设置。请在 .dev.vars 或环境变量中配置。');
+  log('FAIL', 'AI_BASE_URL 未设置。请在环境变量中配置（对应 wrangler.jsonc 的 vars）。');
   process.exit(1);
 }
 if (!AI_MODEL) {
-  log('FAIL', 'AI_MODEL 未设置。请在 .dev.vars 或环境变量中配置。');
+  log('FAIL', 'AI_MODEL 未设置。请在环境变量中配置（对应 wrangler.jsonc 的 vars）。');
   process.exit(1);
 }
 if (!AI_API_KEY) {
@@ -36,73 +44,113 @@ if (!AI_API_KEY) {
   process.exit(1);
 }
 
-const CHAT_URL = AI_BASE_URL.replace(/\/+$/, '') + '/chat/completions';
+function stripTrailingSlash(url) {
+  return url.replace(/\/+$/, '');
+}
 
-const body = {
-  model: AI_MODEL,
-  messages: [
-    { role: 'user', content: '请回复"连接正常"这四个字，不要回复其他内容。' },
-  ],
-  max_tokens: 64,
-};
+async function testChat(label, baseUrl, modelName, apiKey) {
+  const url = stripTrailingSlash(baseUrl) + '/chat/completions';
+  const body = {
+    model: modelName,
+    messages: [
+      { role: 'user', content: '请回复"连接正常"这四个字，不要回复其他内容。' },
+    ],
+    max_tokens: 64,
+  };
+
+  console.log(`\n${'─'.repeat(60)}`);
+  console.log(`[ai-test.mjs] 阶段: ${label}`);
+  console.log(`[ai-test.mjs] URL    ${url}`);
+  console.log(`[ai-test.mjs] Model  ${modelName}`);
+  console.log(`[ai-test.mjs] Key    ${maskKey(apiKey)}`);
+
+  const start = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const elapsed = Date.now() - start;
+    const contentType = response.headers.get('content-type') || 'unknown';
+    const text = await response.text();
+
+    logResponse('[ai-test.mjs]', { url, status: response.status, statusText: response.statusText, elapsed, contentType, body: text });
+
+    if (!response.ok) {
+      log('WARN', `HTTP ${response.status} — ${label}`);
+      return false;
+    }
+
+    if (!contentType.includes('application/json')) {
+      log('WARN', `期望 JSON 但得到 ${contentType} — ${label}`);
+      return false;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      log('WARN', `响应不是合法 JSON — ${label}`);
+      return false;
+    }
+
+    const reply = data.choices?.[0]?.message?.content ?? '(空)';
+    console.log(`[ai-test.mjs] 回复   ${reply}`);
+
+    if (reply.includes('连接正常')) {
+      log('PASS', `${label} — 连接正常`);
+      return true;
+    } else {
+      log('WARN', `返回了内容但并非预期回复: "${reply}" — ${label}`);
+      return true;
+    }
+  } catch (err) {
+    const elapsed = Date.now() - start;
+    console.log(`[ai-test.mjs] 耗时   ${elapsed}ms`);
+    log('WARN', `请求失败: ${err.message} — ${label}`);
+    return false;
+  }
+}
 
 console.log('[ai-test.mjs] AI API 联通测试');
-console.log(`[ai-test.mjs] URL    ${CHAT_URL}`);
-console.log(`[ai-test.mjs] Model  ${AI_MODEL}`);
-console.log(`[ai-test.mjs] Key    ${maskKey(AI_API_KEY)}`);
+console.log('[ai-test.mjs] 按 Ctrl+C 可随时中断');
 
-const start = Date.now();
+let pass = 0;
+let fail = 0;
 
-try {
-  const response = await fetch(CHAT_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${AI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+const results = [];
 
-  const elapsed = Date.now() - start;
-  const contentType = response.headers.get('content-type') || 'unknown';
-  const text = await response.text();
+// Stage 1: Primary
+const r1 = await testChat('主', AI_BASE_URL, AI_MODEL, AI_API_KEY);
+r1 ? pass++ : fail++;
+results.push({ label: '主', passed: r1 });
 
-  logResponse('[ai-test.mjs]', { url: CHAT_URL, status: response.status, statusText: response.statusText, elapsed, contentType, body: text });
+// Stage 2: Fallback
+if (AI_FALLBACK_BASE_URL && AI_FALLBACK_MODEL && AI_FALLBACK_API_KEY &&
+    (AI_FALLBACK_BASE_URL !== AI_BASE_URL || AI_FALLBACK_MODEL !== AI_MODEL || AI_FALLBACK_API_KEY !== AI_API_KEY)) {
+  const r2 = await testChat('Fallback', AI_FALLBACK_BASE_URL, AI_FALLBACK_MODEL, AI_FALLBACK_API_KEY);
+  r2 ? pass++ : fail++;
+  results.push({ label: 'Fallback', passed: r2 });
+} else {
+  console.log(`\n${'─'.repeat(60)}`);
+  console.log('[ai-test.mjs] 阶段: Fallback — 跳过（AI_FALLBACK_BASE_URL、AI_FALLBACK_MODEL 或 AI_FALLBACK_API_KEY 未设置，或全部与主值相同）');
+}
 
-  if (!response.ok) {
-    log('FAIL', `HTTP ${response.status}`);
-    process.exit(1);
-  }
-
-  if (!contentType.includes('application/json')) {
-    log('FAIL', `期望 JSON 但得到 ${contentType}`);
-    process.exit(1);
-  }
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    log('FAIL', '响应不是合法 JSON');
-    process.exit(1);
-  }
-
-  const reply = data.choices?.[0]?.message?.content ?? '(空)';
-
-  console.log(`[ai-test.mjs] 回复   ${reply}`);
-
-  if (reply.includes('连接正常')) {
-    log('PASS', 'AI API 连接正常');
-    process.exit(0);
-  } else {
-    log('WARN', `返回了内容但并非预期回复: "${reply}"`);
-    log('PASS', 'AI API 本身已连通');
-    process.exit(0);
-  }
-
-} catch (err) {
-  const elapsed = Date.now() - start;
-  console.log(`[ai-test.mjs] 耗时   ${elapsed}ms`);
-  log('FAIL', `请求失败: ${err.message}`);
+console.log(`\n${'═'.repeat(60)}`);
+console.log(`[ai-test.mjs] 结果: ${pass}/${pass + fail} 通过`);
+for (const r of results) {
+  console.log(`[ai-test.mjs]   ${r.passed ? 'PASS' : 'WARN'}  ${r.label}`);
+}
+if (fail > 0) {
+  log('WARN', `${fail} 个阶段失败（非致命，不代表全部不可用）`);
   process.exit(1);
+} else {
+  log('PASS', '所有阶段通过');
+  process.exit(0);
 }

@@ -40,9 +40,9 @@
 	 */
 	"vars": {
 		"AI_BASE_URL": "https://aoxo.5920721.xyz/v1",
-		"AI_FALLBACK_BASE_URL": "https://aoxo.5920721.xyz/v1",
+		"AI_FALLBACK_BASE_URL": "https://api.siliconflow.cn/v1",
 		"AI_MODEL": "gpt-5.5",
-		"AI_FALLBACK_MODEL": "gpt-5.4",
+		"AI_FALLBACK_MODEL": "deepseek-ai/DeepSeek-V4-Flash",
 		"AI_TIMEOUT": "25000"
 	}
 	/**

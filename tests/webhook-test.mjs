@@ -5,9 +5,10 @@
  *   先终端 1: npx wrangler dev（wrangler dev）
  *   再终端 2: npm run test-webhook
  *
- * 前置条件：
- *   - .dev.vars 中配置了 TOKEN（与 wrangler.jsonc 中的签名密钥一致）
- *   - wrangler dev 已在 http://localhost:8787 运行
+ * 前置条件（环境变量）：
+ *   TOKEN        来自 .dev.vars 或环境变量（对应 wrangler 的 secret）
+ *   WORKER_URL   来自环境变量（如 http://localhost:8787）
+ *   wrangler dev 已在 WORKER_URL 运行
  *
  * 测试内容：
  *   - 若无签名头 → 403
