@@ -6,7 +6,7 @@
 %%{init: {'theme':'base', 'themeVariables': {
   'fontSize': '20px',
   'actorFontSize': '20px',
-  'messageFontSize': '15px',
+  'messageFontSize': '20px',
   'lineColor': '#5a8dc8',
   'primaryTextColor': '#e66e18',
   'textColor': '#4bf837'

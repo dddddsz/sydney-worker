@@ -4,4 +4,4 @@
  */
 export { handlePrivateMessage } from './private';
 export { handleGroupMessage } from './group';
-export { buildSystemPrompt } from '../ai/prompt';
+export { buildSystemPrompt } from './prompt';

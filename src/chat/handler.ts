@@ -1,6 +1,7 @@
 import { FilteredMessage } from '../router/filter';
 import { callAI } from '../ai';
-import { MoodState, getMoodRange, computeNextMood } from '../ai/mood';
+import { MoodState, getMoodRange, computeNextMood } from './mood';
+import { buildSystemPrompt } from './prompt';
 import { jsonResponse } from '../response';
 import { logLine, LogContext } from '../ctx';
 import { SessionStore } from '../session';
@@ -71,6 +72,7 @@ export async function handleChat(
 
     const reply = await callAI(
       [
+        { role: 'system', content: buildSystemPrompt(mood) },
         ...history.map(m => ({
           role: m.role,
           content: m.content,
@@ -80,7 +82,6 @@ export async function handleChat(
       ],
       env,
       ctx,
-      mood,
     );
 
     const now = Date.now();

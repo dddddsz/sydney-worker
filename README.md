@@ -39,15 +39,15 @@ npx wrangler deploy
 
 ## 模块
 
-| 模块 | 路径 | 状态 | 说明 |
+| 模块 | 路径 | 状态 | 文档 | 说明 |
 |---|---|---|---|
-| guard | src/guard/ | ✅ | Webhook 请求签名校验 |
-| router | src/router/ | ✅ | 消息过滤、意图识别与分发 |
-| chat | src/chat/ | ✅ | 私聊与群聊消息处理 |
-| ai | src/ai/ | ✅ | LLM API 调用（首选失败自动切换次选） |
-| turn | src/turn/ | ✅ | 交互记录归档 |
-| session | src/session/ | ⏳ 未实现 | 对话历史会话管理 |
-| tool | src/tool/ | ⏳ 未实现 | AI 可调用的工具/插件系统 |
+| guard | src/guard/ | ✅ | `docs/guard-flow.md` | Webhook 请求签名校验 |
+| router | src/router/ | ✅ | `docs/router-flow.md` | 消息过滤、意图识别与分发 |
+| chat | src/chat/ | ✅ | `docs/chat-flow.md` | 私聊与群聊消息处理 |
+| ai | src/ai/ | ✅ | `docs/ai-flow.md` | LLM API 调用（首选失败自动切换次选） |
+| turn | src/turn/ | ✅ | — | 交互记录归档 |
+| session | src/session/ | ✅ 初步实现 | — | 对话历史会话管理 |
+| tool | src/tool/ | ⏳ 未实现 | — | AI 可调用的工具/插件系统 |
 
 ## 测试
 
@@ -74,7 +74,7 @@ src/
 ├── chat/          # 消息处理层
 ├── guard/         # 请求守卫层
 ├── router/        # 消息路由层
-├── session/       # 会话管理（未实现）
+├── session/       # 会话管理
 ├── tool/          # 工具系统（未实现）
 └── turn/          # 交互归档
 
