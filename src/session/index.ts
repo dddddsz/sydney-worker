@@ -11,6 +11,7 @@ export interface Session {
   user_id: number;
   group_id: number | null;
   messages: SessionMessage[];
+  mood: number;
   created_at: number;
   updated_at: number;
 }

@@ -1,5 +1,6 @@
 import { FilteredMessage } from '../router/filter';
 import { callAI } from '../ai';
+import { MoodState, getMoodRange, computeNextMood } from '../ai/mood';
 import { jsonResponse } from '../response';
 import { logLine, LogContext } from '../ctx';
 import { SessionStore } from '../session';
@@ -62,6 +63,10 @@ export async function handleChat(
       ? (filtered.card || filtered.nickname)
       : filtered.nickname;
 
+    const session = await store.get(sessionId, ctx);
+    const moodValue = session?.mood ?? 5;
+    const mood: MoodState = { value: moodValue, range: getMoodRange(moodValue) };
+
     const history = await store.getContext(sessionId);
 
     const reply = await callAI(
@@ -75,6 +80,7 @@ export async function handleChat(
       ],
       env,
       ctx,
+      mood,
     );
 
     const now = Date.now();
@@ -82,6 +88,8 @@ export async function handleChat(
     if (reply) {
       await store.append(sessionId, { role: 'assistant', content: reply, timestamp: Date.now() }, ctx);
     }
+    const newMood = computeNextMood(moodValue, reply);
+    await store.updateMood(sessionId, newMood, ctx);
 
     logLine(ctx, source, `duration=${Date.now() - chatStart}ms reply="${reply}"`, 'END');
     const body: any = { reply };

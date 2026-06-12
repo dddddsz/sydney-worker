@@ -24,6 +24,7 @@ export class SessionStore {
           user_id: number;
           group_id: number | null;
           messages: string;
+          mood: number;
           created_at: number;
           updated_at: number;
         }>();
@@ -36,6 +37,7 @@ export class SessionStore {
         user_id: row.user_id,
         group_id: row.group_id,
         messages: JSON.parse(row.messages) as SessionMessage[],
+        mood: row.mood ?? 5,
         created_at: row.created_at,
         updated_at: row.updated_at,
       };
@@ -49,7 +51,7 @@ export class SessionStore {
     try {
       await this.db
         .prepare(
-          'INSERT INTO sessions (id, type, user_id, group_id, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO sessions (id, type, user_id, group_id, messages, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         )
         .bind(
           session.id,
@@ -57,6 +59,7 @@ export class SessionStore {
           session.user_id,
           session.group_id,
           JSON.stringify(session.messages),
+          session.mood,
           session.created_at,
           session.updated_at,
         )
@@ -95,6 +98,7 @@ export class SessionStore {
         user_id: userId,
         group_id: groupId,
         messages: [],
+        mood: 5,
         created_at: now,
         updated_at: now,
       };
@@ -123,6 +127,18 @@ export class SessionStore {
     const session = await this.get(id, ctx);
     if (!session) return [];
     return session.messages.slice(-maxCount);
+  }
+
+  async updateMood(id: string, mood: number, ctx?: LogContext): Promise<void> {
+    try {
+      await this.db
+        .prepare('UPDATE sessions SET mood = ?, updated_at = ? WHERE id = ?')
+        .bind(mood, Date.now(), id)
+        .run();
+    } catch (err: any) {
+      logLine(ctx ?? { requestId: 'session', startTime: Date.now() }, 'session/store', `updateMood id="${id}" mood=${mood} err="${err.message}"`, 'ERROR');
+      throw err;
+    }
   }
 
   private trimSession(session: Session): void {
